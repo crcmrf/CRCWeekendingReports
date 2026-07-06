@@ -193,6 +193,88 @@ function sendData(statusType) {
     })
     .catch(err => console.error(err));
 }
+
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJDf1UNUbKc4FZ80v6-eo5um121eYO-BTp1kaRZ7NegotR5vGWERWd2zKV2ha90Cn4zg/exec';
+
+// Listen for updates on Date and Site fields
+document.getElementById('date').addEventListener('change', checkExistingData);
+document.getElementById('site').addEventListener('change', checkExistingData);
+
+function checkExistingData() {
+    const dateVal = document.getElementById('date').value;
+    const siteVal = document.getElementById('site').value;
+
+    // Only scan if both fields have a value selected
+    if (!dateVal || !siteVal) return;
+
+    // Visual loading state cue
+    console.log("Checking for existing data...");
+
+    // Send a GET request to the Google Apps Script
+    fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}&site=${encodeURIComponent(siteVal)}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.found) {
+            // Map the spreadsheet rows back to your form inputs
+            document.getElementById('satTrans').value = data.transSat || '';
+            document.getElementById('sunTrans').value = data.transSun || '';
+            document.getElementById('totalTrans').value = data.transTotal || '';
+            document.getElementById('satRev').value = data.revSat || '';
+            document.getElementById('sunRev').value = data.revSun || '';
+            document.getElementById('totalRev').value = data.revTotal || '';
+            document.getElementById('incidents').value = data.incident || '';
+            document.getElementById('hrMatters').value = data.hrMatters || '';
+            document.getElementById('buyBackTones').value = data.monthlyTonnes || '';
+            document.getElementById('buyBackNotes').value = data.buyBackComments || '';
+            document.getElementById('adhocTasks').value = data.adhoc || '';
+            document.getElementById('anyIssues').value = data.anyIssues || '';
+            document.getElementById('anythingExtra').value = data.notes || '';
+            
+            alert('Found existing saved data for this date and site! Populating form fields.');
+        } else {
+            console.log("No existing record found. Clear form fields for fresh entry.");
+        }
+    })
+    .catch(error => console.error('Error fetching data:', error));
+}
+
+function sendData(statusType) {
+    if(!document.getElementById('date').value || !document.getElementById('site').value) {
+        alert('Please select a Date and a Site.');
+        return;
+    }
+
+    const formData = {
+        dateWEnd: document.getElementById('date').value,
+        site: document.getElementById('site').value,
+        transSat: document.getElementById('satTrans').value,
+        transSun: document.getElementById('sunTrans').value,
+        transTotal: document.getElementById('totalTrans').value,
+        revSat: document.getElementById('satRev').value,
+        revSun: document.getElementById('sunRev').value,
+        revTotal: document.getElementById('totalRev').value,
+        incident: document.getElementById('incidents').value,
+        hrMatters: document.getElementById('hrMatters').value,
+        monthlyTonnes: document.getElementById('buyBackTones').value,
+        buyBackComments: document.getElementById('buyBackNotes').value,
+        adhoc: document.getElementById('adhocTasks').value,
+        anyIssues: document.getElementById('anyIssues').value,
+        notes: document.getElementById('anythingExtra').value
+    };
+
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(() => {
+        alert('Report logged successfully to WeekendingData.');
+        document.getElementById('reportForm').reset();
+    })
+    .catch(err => console.error(err));
+}    
 </script>
 </body>
 </html>
