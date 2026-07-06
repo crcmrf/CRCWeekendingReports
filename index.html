@@ -37,8 +37,11 @@
         <div class="input-area">
             <select id="site" required>
                 <option value="">Pick Site</option>
-                <option value="Site A">Site A</option>
-                <option value="Site B">Site B</option>
+                <option value="PTS">PTS</option>
+                <option value="STS">STS</option>
+                <option value="GTS">GTS</option>
+                <option value="BTS">BTS</option>
+                <option value="BBS">BBS</option>
             </select>
         </div>
     </div>
@@ -106,116 +109,46 @@
 </form>
 
 <script>
-    const GOOGLE_SCRIPT_URL = 'YOUR_COPIED_GOOGLE_WEB_APP_URL_HERE';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJDf1UNUbKc4FZ80v6-eo5um121eYO-BTp1kaRZ7NegotR5vGWERWd2zKV2ha90Cn4zg/exec';
 
-    function sendData(statusType) {
-        // Validate required fields basic check
-        if(!document.getElementById('date').value || !document.getElementById('site').value) {
-            alert('Please select a Date and a Site.');
-            return;
-        }
+// Listen for updates on Date and Site fields
+document.getElementById('date').addEventListener('change', handleDateChange);
+document.getElementById('site').addEventListener('change', checkExistingData);
 
-        const formData = {
-            date: document.getElementById('date').value,
-            site: document.getElementById('site').value,
-            satTrans: document.getElementById('satTrans').value,
-            sunTrans: document.getElementById('sunTrans').value,
-            totalTrans: document.getElementById('totalTrans').value,
-            satRev: document.getElementById('satRev').value,
-            sunRev: document.getElementById('sunRev').value,
-            totalRev: document.getElementById('totalRev').value,
-            incidents: document.getElementById('incidents').value,
-            hrMatters: document.getElementById('hrMatters').value,
-            buyBackTones: document.getElementById('buyBackTones').value,
-            buyBackNotes: document.getElementById('buyBackNotes').value,
-            adhocTasks: document.getElementById('adhocTasks').value,
-            anyIssues: document.getElementById('anyIssues').value,
-            anythingExtra: document.getElementById('anythingExtra').value,
-            status: statusType
-        };
+function handleDateChange() {
+    const dateInput = document.getElementById('date');
+    const selectedDate = dateInput.value;
+    
+    if (!selectedDate) return;
 
-        // Send via AJAX POST to Google Apps Script
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Needed to bypass CORS restrictions on Google Script redirects
-            cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        .then(() => {
-            alert('Report successfully processed as: ' + statusType);
-            if(statusType === 'Submitted') {
-                document.getElementById('reportForm').reset();
-            }
-        })
-        .catch(error => {
-            alert('Submission failed. Check network connection.');
-            console.error('Error:', error);
-        });
-    }
+    // JavaScript's Date object reads Sundays as day 0, Mondays as day 1... Saturdays as day 6.
+    // We add absolute UTC matching to avoid local time zone shifts corrupting the day index.
+    const dateObj = new Date(selectedDate);
+    const dayOfWeek = dateObj.getUTCDay(); 
 
-function sendData(statusType) {
-    if(!document.getElementById('date').value || !document.getElementById('site').value) {
-        alert('Please select a Date and a Site.');
+    if (dayOfWeek !== 0) {
+        alert('Validation Error: Weekend Reports can only be submitted for Sundays (Week Ending). Please select a valid Sunday.');
+        dateInput.value = ''; // Force clear the input
         return;
     }
 
-    // Capture fields mapped straight to your sheet design
-    const formData = {
-        dateWEnd: document.getElementById('date').value,
-        site: document.getElementById('site').value,
-        transSat: document.getElementById('satTrans').value,
-        transSun: document.getElementById('sunTrans').value,
-        transTotal: document.getElementById('totalTrans').value,
-        revSat: document.getElementById('satRev').value,
-        revSun: document.getElementById('sunRev').value,
-        revTotal: document.getElementById('totalRev').value,
-        incident: document.getElementById('incidents').value,
-        hrMatters: document.getElementById('hrMatters').value,
-        monthlyTonnes: document.getElementById('buyBackTones').value,
-        buyBackComments: document.getElementById('buyBackNotes').value,
-        adhoc: document.getElementById('adhocTasks').value,
-        anyIssues: document.getElementById('anyIssues').value,
-        notes: document.getElementById('anythingExtra').value
-    };
-
-    // The fetch request code block remains identical to before...
-    fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-    })
-    .then(() => {
-        alert('Report logged successfully to WeekendingData.');
-        document.getElementById('reportForm').reset();
-    })
-    .catch(err => console.error(err));
+    // If it is a Sunday, proceed to check for existing data matching this date
+    checkExistingData();
 }
-
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJDf1UNUbKc4FZ80v6-eo5um121eYO-BTp1kaRZ7NegotR5vGWERWd2zKV2ha90Cn4zg/exec';
-
-// Listen for updates on Date and Site fields
-document.getElementById('date').addEventListener('change', checkExistingData);
-document.getElementById('site').addEventListener('change', checkExistingData);
 
 function checkExistingData() {
     const dateVal = document.getElementById('date').value;
     const siteVal = document.getElementById('site').value;
 
-    // Only scan if both fields have a value selected
+    // Only scan the sheet backend if both fields have a valid value selected
     if (!dateVal || !siteVal) return;
 
-    // Visual loading state cue
     console.log("Checking for existing data...");
 
-    // Send a GET request to the Google Apps Script
     fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}&site=${encodeURIComponent(siteVal)}`)
     .then(response => response.json())
     .then(data => {
         if (data.found) {
-            // Map the spreadsheet rows back to your form inputs
             document.getElementById('satTrans').value = data.transSat || '';
             document.getElementById('sunTrans').value = data.transSun || '';
             document.getElementById('totalTrans').value = data.transTotal || '';
@@ -230,9 +163,9 @@ function checkExistingData() {
             document.getElementById('anyIssues').value = data.anyIssues || '';
             document.getElementById('anythingExtra').value = data.notes || '';
             
-            alert('Found existing saved data for this date and site! Populating form fields.');
+            alert(`Found existing saved data for ${siteVal} on W/E ${dateVal}! Populating form fields.`);
         } else {
-            console.log("No existing record found. Clear form fields for fresh entry.");
+            console.log("No existing record found.");
         }
     })
     .catch(error => console.error('Error fetching data:', error));
@@ -274,7 +207,7 @@ function sendData(statusType) {
         document.getElementById('reportForm').reset();
     })
     .catch(err => console.error(err));
-}    
+}   
 </script>
 </body>
 </html>
