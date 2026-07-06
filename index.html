@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weekend Reports - Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 20px auto; border: 2px solid #000; }
+        .header { text-align: center; border-bottom: 2px solid #000; position: relative; padding: 10px; }
+        .header h1 { margin: 5px 0; font-size: 28px; }
+        .grid-row { display: flex; border-bottom: 1px solid #000; }
+        .label { width: 30%; font-weight: bold; background: #fff; padding: 10px; border-right: 1px solid #000; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .input-area { width: 70%; padding: 10px; }
+        .sub-grid { display: grid; grid-template-columns: 120px 1fr; gap: 5px; }
+        input[type="text"], input[type="date"], select, textarea { width: 100%; box-sizing: border-box; padding: 5px; }
+        textarea { height: 60px; resize: vertical; }
+        .footer-buttons { display: flex; }
+        .btn { width: 50%; padding: 15px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; text-align: center; }
+        .btn-save { background-color: #e0e0e0; border-right: 1px solid #000; }
+        .btn-submit { background-color: #fffde0; }
+        .btn:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<form id="reportForm">
+    <div class="header">
+        <h1>Weekend Reports - Admin</h1>
+    </div>
+
+    <!-- Date & Site -->
+    <div class="grid-row">
+        <div class="label">Date (Week Ending):</div>
+        <div class="input-area"><input type="date" id="date" required></div>
+    </div>
+    <div class="grid-row">
+        <div class="label">Site:</div>
+        <div class="input-area">
+            <select id="site" required>
+                <option value="">Pick Site</option>
+                <option value="Site A">Site A</option>
+                <option value="Site B">Site B</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Transaction Numbers -->
+    <div class="grid-row">
+        <div class="label">Transaction Numbers</div>
+        <div class="input-area sub-grid">
+            <label>Saturday:</label><input type="text" id="satTrans">
+            <label>Sunday:</label><input type="text" id="sunTrans">
+            <label>Weekly total:</label><input type="text" id="totalTrans" placeholder="(Mon - Sun)">
+        </div>
+    </div>
+
+    <!-- Revenue -->
+    <div class="grid-row">
+        <div class="label">Revenue</div>
+        <div class="input-area sub-grid">
+            <label>Saturday:</label><input type="text" id="satRev">
+            <label>Sunday:</label><input type="text" id="sunRev">
+            <label>Weekly total:</label><input type="text" id="totalRev" placeholder="(Mon - Sun)">
+        </div>
+    </div>
+
+    <!-- Text Sections -->
+    <div class="grid-row">
+        <div class="label">Incidents & Details</div>
+        <div class="input-area"><textarea id="incidents"></textarea></div>
+    </div>
+    <div class="grid-row">
+        <div class="label">HR Matters<br><small style="font-size:10px; font-weight:normal;">Staff wellbeing, Code of conduct, unplanned leave etc.</small></div>
+        <div class="input-area"><textarea id="hrMatters"></textarea></div>
+    </div>
+
+    <!-- Buy Back Movements -->
+    <div class="grid-row">
+        <div class="label">Buy Back Movements</div>
+        <div class="input-area">
+            <div class="sub-grid" style="margin-bottom: 5px;">
+                <label>Tones:</label><input type="text" id="buyBackTones">
+            </div>
+            <textarea id="buyBackNotes"></textarea>
+        </div>
+    </div>
+
+    <!-- ADHOC & Extras -->
+    <div class="grid-row">
+        <div class="label">ADHOC Tasks<br><small style="font-size:10px; font-weight:normal;">i.e. non-ferrous, water meter stripping, fert bag loading</small></div>
+        <div class="input-area"><textarea id="adhocTasks"></textarea></div>
+    </div>
+    <div class="grid-row">
+        <div class="label">Any Issues?</div>
+        <div class="input-area"><textarea id="anyIssues"></textarea></div>
+    </div>
+    <div class="grid-row">
+        <div class="label">Anything Extra</div>
+        <div class="input-area"><textarea id="anythingExtra"></textarea></div>
+    </div>
+
+    <!-- Form Footer Buttons -->
+    <div class="footer-buttons">
+        <button type="button" class="btn btn-save" onclick="sendData('Saved for Later')">Save for Later</button>
+        <button type="button" class="btn btn-submit" onclick="sendData('Submitted')">Submit Weekending Report</button>
+    </div>
+</form>
+
+<script>
+    const GOOGLE_SCRIPT_URL = 'YOUR_COPIED_GOOGLE_WEB_APP_URL_HERE';
+
+    function sendData(statusType) {
+        // Validate required fields basic check
+        if(!document.getElementById('date').value || !document.getElementById('site').value) {
+            alert('Please select a Date and a Site.');
+            return;
+        }
+
+        const formData = {
+            date: document.getElementById('date').value,
+            site: document.getElementById('site').value,
+            satTrans: document.getElementById('satTrans').value,
+            sunTrans: document.getElementById('sunTrans').value,
+            totalTrans: document.getElementById('totalTrans').value,
+            satRev: document.getElementById('satRev').value,
+            sunRev: document.getElementById('sunRev').value,
+            totalRev: document.getElementById('totalRev').value,
+            incidents: document.getElementById('incidents').value,
+            hrMatters: document.getElementById('hrMatters').value,
+            buyBackTones: document.getElementById('buyBackTones').value,
+            buyBackNotes: document.getElementById('buyBackNotes').value,
+            adhocTasks: document.getElementById('adhocTasks').value,
+            anyIssues: document.getElementById('anyIssues').value,
+            anythingExtra: document.getElementById('anythingExtra').value,
+            status: statusType
+        };
+
+        // Send via AJAX POST to Google Apps Script
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Needed to bypass CORS restrictions on Google Script redirects
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(() => {
+            alert('Report successfully processed as: ' + statusType);
+            if(statusType === 'Submitted') {
+                document.getElementById('reportForm').reset();
+            }
+        })
+        .catch(error => {
+            alert('Submission failed. Check network connection.');
+            console.error('Error:', error);
+        });
+    }
+
+function sendData(statusType) {
+    if(!document.getElementById('date').value || !document.getElementById('site').value) {
+        alert('Please select a Date and a Site.');
+        return;
+    }
+
+    // Capture fields mapped straight to your sheet design
+    const formData = {
+        dateWEnd: document.getElementById('date').value,
+        site: document.getElementById('site').value,
+        transSat: document.getElementById('satTrans').value,
+        transSun: document.getElementById('sunTrans').value,
+        transTotal: document.getElementById('totalTrans').value,
+        revSat: document.getElementById('satRev').value,
+        revSun: document.getElementById('sunRev').value,
+        revTotal: document.getElementById('totalRev').value,
+        incident: document.getElementById('incidents').value,
+        hrMatters: document.getElementById('hrMatters').value,
+        monthlyTonnes: document.getElementById('buyBackTones').value,
+        buyBackComments: document.getElementById('buyBackNotes').value,
+        adhoc: document.getElementById('adhocTasks').value,
+        anyIssues: document.getElementById('anyIssues').value,
+        notes: document.getElementById('anythingExtra').value
+    };
+
+    // The fetch request code block remains identical to before...
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(() => {
+        alert('Report logged successfully to WeekendingData.');
+        document.getElementById('reportForm').reset();
+    })
+    .catch(err => console.error(err));
+}
+</script>
+</body>
+</html>
