@@ -111,31 +111,46 @@
 <script>
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQ83v4NMqr--yQPitl9qWyh5ntfPvekiqOM30KMMU3dO2aj_mRJpTzMlViJeQRbkNz/exec';
 
-// Listen for updates on Date and Site fields
+// Create a visual status indicator element dynamically under the title
+const formElement = document.getElementById('reportForm');
+const statusBanner = document.createElement('div');
+statusBanner.id = 'statusBanner';
+statusBanner.style.cssText = 'text-align: center; font-weight: bold; padding: 10px; margin: 10px; border-radius: 4px; display: none;';
+formElement.insertBefore(statusBanner, formElement.children[1]); // Inserts right below the header
+
+// Listen for updates on both Date and Site fields
 document.getElementById('date').addEventListener('change', handleDateChange);
-document.getElementById('site').addEventListener('change', checkExistingData);
+document.getElementById('site').addEventListener('change', handleSiteChange);
 
 function handleDateChange() {
     const dateInput = document.getElementById('date');
     const selectedDate = dateInput.value;
     
-    if (!selectedDate) return;
+    if (!selectedDate) {
+        hideStatus();
+        return;
+    }
 
-    // JavaScript's Date object reads Sundays as day 0
+    // Sunday validation check
     const dateObj = new Date(selectedDate);
     const dayOfWeek = dateObj.getUTCDay(); 
 
     if (dayOfWeek !== 0) {
         alert('Validation Error: Weekend Reports can only be submitted for Sundays (Week Ending). Please select a valid Sunday.');
-        dateInput.value = ''; // Force clear the input
-        resetFormFields();    // Clear fields if an invalid date was picked
+        dateInput.value = ''; 
+        resetFormFields();    
+        hideStatus();
         return;
     }
 
-    // NEW: Reset all fields right after changing to a valid date, before running the lookup
+    // Reset fields and check backend
     resetFormFields();
+    checkExistingData();
+}
 
-    // Proceed to check for existing data matching this new date configuration
+function handleSiteChange() {
+    // Reset fields and check backend immediately when changing the site dropdown
+    resetFormFields();
     checkExistingData();
 }
 
@@ -150,26 +165,42 @@ function resetFormFields() {
     
     fieldsToClear.forEach(id => {
         const element = document.getElementById(id);
-        if (element) {
-            element.value = '';
-        }
+        if (element) element.value = '';
     });
-    console.log("Form fields reset for new date selection.");
+}
+
+// Visual status helpers
+function showStatus(text, bgColor, textColor) {
+    statusBanner.innerText = text;
+    statusBanner.style.backgroundColor = bgColor;
+    statusBanner.style.color = textColor;
+    statusBanner.style.display = 'block';
+}
+
+function hideStatus() {
+    statusBanner.style.display = 'none';
 }
 
 function checkExistingData() {
     const dateVal = document.getElementById('date').value;
     const siteVal = document.getElementById('site').value;
 
-    // Only scan the sheet backend if both fields have a valid value selected
-    if (!dateVal || !siteVal) return;
+    // Only scan if both parameters are actively selected
+    if (!dateVal || !siteVal) {
+        hideStatus();
+        return;
+    }
 
-    console.log("Checking for existing data...");
+    // 1. Show Loading State
+    showStatus("🔍 Looking for existing data in Google Sheets...", "#e3f2fd", "#0d47a1");
 
     fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}&site=${encodeURIComponent(siteVal)}`)
     .then(response => response.json())
     .then(data => {
         if (data.found) {
+            // 2. Found Data State
+            showStatus(`✅ Existing data found and loaded for ${siteVal}!`, "#e8f5e9", "#1b5e20");
+
             document.getElementById('satTrans').value = data.transSat || '';
             document.getElementById('sunTrans').value = data.transSun || '';
             document.getElementById('totalTrans').value = data.transTotal || '';
@@ -183,13 +214,15 @@ function checkExistingData() {
             document.getElementById('adhocTasks').value = data.adhoc || '';
             document.getElementById('anyIssues').value = data.anyIssues || '';
             document.getElementById('anythingExtra').value = data.notes || '';
-            
-            alert(`Found existing saved data for ${siteVal} on W/E ${dateVal}! Populating form fields.`);
         } else {
-            console.log("No existing record found. Fields remain clear for fresh entry.");
+            // 3. Fresh Record State
+            showStatus(`🆕 No saved data found for ${siteVal} on this date. Ready for fresh entry.`, "#fff3e0", "#e65100");
         }
     })
-    .catch(error => console.error('Error fetching data:', error));
+    .catch(error => {
+        showStatus("❌ Error linking to database. Check connection.", "#ffefee", "#c62828");
+        console.error('Error fetching data:', error);
+    });
 }
 
 function sendData(statusType) {
@@ -197,6 +230,8 @@ function sendData(statusType) {
         alert('Please select a Date and a Site.');
         return;
     }
+
+    showStatus("⏳ Submitting report to spreadsheet...", "#f5f5f5", "#333333");
 
     const formData = {
         dateWEnd: document.getElementById('date').value,
@@ -224,10 +259,15 @@ function sendData(statusType) {
         body: JSON.stringify(formData)
     })
     .then(() => {
+        showStatus("🚀 Report logged successfully!", "#e8f5e9", "#1b5e20");
         alert('Report logged successfully to WeekendingData.');
         document.getElementById('reportForm').reset();
+        setTimeout(hideStatus, 5000); // Hide banner after 5 seconds
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+        showStatus("❌ Submission failed.", "#ffefee", "#c62828");
+        console.error(err);
+    });
 }
 </script>
 </body>
