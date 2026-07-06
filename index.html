@@ -121,19 +121,40 @@ function handleDateChange() {
     
     if (!selectedDate) return;
 
-    // JavaScript's Date object reads Sundays as day 0, Mondays as day 1... Saturdays as day 6.
-    // We add absolute UTC matching to avoid local time zone shifts corrupting the day index.
+    // JavaScript's Date object reads Sundays as day 0
     const dateObj = new Date(selectedDate);
     const dayOfWeek = dateObj.getUTCDay(); 
 
     if (dayOfWeek !== 0) {
         alert('Validation Error: Weekend Reports can only be submitted for Sundays (Week Ending). Please select a valid Sunday.');
         dateInput.value = ''; // Force clear the input
+        resetFormFields();    // Clear fields if an invalid date was picked
         return;
     }
 
-    // If it is a Sunday, proceed to check for existing data matching this date
+    // NEW: Reset all fields right after changing to a valid date, before running the lookup
+    resetFormFields();
+
+    // Proceed to check for existing data matching this new date configuration
     checkExistingData();
+}
+
+// Function to clear all input data fields following the "Site" selector
+function resetFormFields() {
+    const fieldsToClear = [
+        'satTrans', 'sunTrans', 'totalTrans', 
+        'satRev', 'sunRev', 'totalRev', 
+        'incidents', 'hrMatters', 'buyBackTones', 
+        'buyBackNotes', 'adhocTasks', 'anyIssues', 'anythingExtra'
+    ];
+    
+    fieldsToClear.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = '';
+        }
+    });
+    console.log("Form fields reset for new date selection.");
 }
 
 function checkExistingData() {
@@ -165,19 +186,18 @@ function checkExistingData() {
             
             alert(`Found existing saved data for ${siteVal} on W/E ${dateVal}! Populating form fields.`);
         } else {
-            console.log("No existing record found.");
+            console.log("No existing record found. Fields remain clear for fresh entry.");
         }
     })
     .catch(error => console.error('Error fetching data:', error));
 }
 
 function sendData(statusType) {
-if(!document.getElementById('date').value || !document.getElementById('site').value) {
+    if(!document.getElementById('date').value || !document.getElementById('site').value) {
         alert('Please select a Date and a Site.');
         return;
     }
 
-    // Capture fields mapped straight to your sheet design
     const formData = {
         dateWEnd: document.getElementById('date').value,
         site: document.getElementById('site').value,
@@ -196,22 +216,18 @@ if(!document.getElementById('date').value || !document.getElementById('site').va
         notes: document.getElementById('anythingExtra').value
     };
 
-    // FIX: Send as 'text/plain' to prevent the browser from issuing a CORS preflight check
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Kept safe for redirects
+        mode: 'no-cors',
         cache: 'no-cache',
-        headers: { 'Content-Type': 'text/plain' }, 
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(formData)
     })
     .then(() => {
         alert('Report logged successfully to WeekendingData.');
         document.getElementById('reportForm').reset();
     })
-    .catch(err => {
-        alert('An error occurred during submission.');
-        console.error(err);
-    });
+    .catch(err => console.error(err));
 }
 </script>
 </body>
