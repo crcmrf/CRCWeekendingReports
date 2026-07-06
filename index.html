@@ -172,11 +172,12 @@ function checkExistingData() {
 }
 
 function sendData(statusType) {
-    if(!document.getElementById('date').value || !document.getElementById('site').value) {
+if(!document.getElementById('date').value || !document.getElementById('site').value) {
         alert('Please select a Date and a Site.');
         return;
     }
 
+    // Capture fields mapped straight to your sheet design
     const formData = {
         dateWEnd: document.getElementById('date').value,
         site: document.getElementById('site').value,
@@ -195,19 +196,23 @@ function sendData(statusType) {
         notes: document.getElementById('anythingExtra').value
     };
 
+    // FIX: Send as 'text/plain' to prevent the browser from issuing a CORS preflight check
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'cors',
+        mode: 'no-cors', // Kept safe for redirects
         cache: 'no-cache',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' }, 
         body: JSON.stringify(formData)
     })
     .then(() => {
         alert('Report logged successfully to WeekendingData.');
         document.getElementById('reportForm').reset();
     })
-    .catch(err => console.error(err));
-}   
+    .catch(err => {
+        alert('An error occurred during submission.');
+        console.error(err);
+    });
+}
 </script>
 </body>
 </html>
