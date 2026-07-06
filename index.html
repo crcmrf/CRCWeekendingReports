@@ -197,7 +197,7 @@ function sendData(statusType) {
 
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'cors',
         cache: 'no-cache',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
