@@ -192,7 +192,7 @@ function checkExistingData() {
     }
 
     // 1. Show Loading State
-    showStatus("🔍 Looking for existing data in Google Sheets...", "#e3f2fd", "#0d47a1");
+    showStatus("🔍 Looking for existing data...", "#e3f2fd", "#0d47a1");
 
     fetch(`${GOOGLE_SCRIPT_URL}?date=${dateVal}&site=${encodeURIComponent(siteVal)}`)
     .then(response => response.json())
